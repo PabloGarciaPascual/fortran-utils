@@ -541,7 +541,8 @@ end function
 ! The SPHJ, SPHY, MSTA1, MSTA2 routines below are taken from SciPy's specfun.f.
 ! Authors: Shanjie Zhang and Jianming Jin
 ! Copyrighted but permission granted to use code in programs.
-        SUBROUTINE SPHJ(N,X,NM,SJ,DJ)
+! They have been refactored into modern Fortran.
+        subroutine sphj(n,x,nm,sj,dj)
 !       =======================================================
 !       Purpose: Compute spherical Bessel functions jn(x) and
 !                their derivatives
@@ -554,7 +555,7 @@ end function
 !                MSTA1 and MSTA2 for computing the starting
 !                point for backward recurrence
 !       =======================================================
-!
+
         integer,intent(in) :: n
         real(dp),intent(in) :: x
         integer,intent(out) :: nm
@@ -564,58 +565,58 @@ end function
         integer :: k,m
         real(dp) :: sa,sb,f,f0,f1,cs
 
-        ! .3333333333333333D0 in original
+        ! .3333333333333333d0 in original
         real(dp),parameter :: one_third = 1.0_dp / 3.0_dp
 
-        NM=N
-        IF (abs(X)<1.0e-100_dp) THEN
-           DO K=0,N
-              SJ(K)=0.0_dp
-              DJ(K)=0.0_dp
+        nm=n
+        if (abs(x)<1.0e-100_dp) then
+           do k=0,n
+              sj(k)=0.0_dp
+              dj(k)=0.0_dp
            end do
-           SJ(0)=1.0_dp
-           IF (N>0) THEN
-              DJ(1)=one_third
-           ENDIF
-           RETURN
-        ENDIF
-        SJ(0)=sin(X)/X
-        DJ(0)=(cos(X)-sin(X)/X)/X
-        IF (N<1) THEN
-           RETURN
-        ENDIF
-        SJ(1)=(SJ(0)-cos(X))/X
-        IF (N>=2) THEN
-           SA=SJ(0)
-           SB=SJ(1)
-           M=MSTA1(X,200)
-           IF (M<N) THEN
-              NM=M
-           ELSE
-              M=MSTA2(X,N,15)
-           ENDIF
-           F=0.0_dp
-           F0=0.0_dp
-           F1=1.0_dp-100    ! note: '1.0D0-100' is (1.0d0 - 100 = -99.0d0)... was it supposed to be 1.0e-100 ?
-           DO K=M,0,-1
-              F=(2.0_dp*K+3.0_dp)*F1/X-F0
-              IF (K<=NM) SJ(K)=F
-              F0=F1
-              F1=F
+           sj(0)=1.0_dp
+           if (n>0) then
+              dj(1)=one_third
+           endif
+           return
+        endif
+        sj(0)=sin(x)/x
+        dj(0)=(cos(x)-sin(x)/x)/x
+        if (n<1) then
+           return
+        endif
+        sj(1)=(sj(0)-cos(x))/x
+        if (n>=2) then
+           sa=sj(0)
+           sb=sj(1)
+           m=msta1(x,200)
+           if (m<n) then
+              nm=m
+           else
+              m=msta2(x,n,15)
+           endif
+           f=0.0_dp
+           f0=0.0_dp
+           f1=1.0_dp-100
+           do k=m,0,-1
+              f=(2.0_dp*k+3.0_dp)*f1/x-f0
+              if (k<=nm) sj(k)=f
+              f0=f1
+              f1=f
            end do
-           CS=0.0_dp
-           IF (abs(SA)>abs(SB)) CS=SA/F
-           IF (abs(SA)<=abs(SB)) CS=SB/F0
-           DO K=0,NM
-              SJ(K)=CS*SJ(K)
+           cs=0.0_dp
+           if (abs(sa)>abs(sb)) cs=sa/f
+           if (abs(sa)<=abs(sb)) cs=sb/f0
+           do k=0,nm
+              sj(k)=cs*sj(k)
            end do
-        ENDIF
-        DO K=1,NM
-           DJ(K)=SJ(K-1)-(K+1.0_dp)*SJ(K)/X
+        endif
+        do k=1,nm
+           dj(k)=sj(k-1)-(k+1.0_dp)*sj(k)/x
         end do
-        END SUBROUTINE SPHJ
+        end subroutine sphj
 
-        SUBROUTINE SPHY(N,X,NM,SY,DY)
+        subroutine sphy(n,x,nm,sy,dy)
 !       ======================================================
 !       Purpose: Compute spherical Bessel functions yn(x) and
 !                their derivatives
@@ -625,7 +626,7 @@ end function
 !                DY(n) --- yn'(x)
 !                NM --- Highest order computed
 !       ======================================================
-!
+
         integer,intent(in) :: n
         real(dp),intent(in) :: x
         integer,intent(out) :: nm
@@ -635,36 +636,36 @@ end function
         integer :: k
         real(dp) :: f0,f1,f
 
-        NM=N
-        IF (X<1.0e-60_dp) THEN
-           DO K=0,N
-              SY(K)=-1.0e+300_dp
-              DY(K)=1.0e+300_dp
+        nm=n
+        if (x<1.0e-60_dp) then
+           do k=0,n
+              sy(k)=-1.0e+300_dp
+              dy(k)=1.0e+300_dp
            end do
-           RETURN
-        ENDIF
-        SY(0)=-cos(X)/X
-        F0=SY(0)
-        DY(0)=(sin(X)+cos(X)/X)/X
-        IF (N<1) THEN
-           RETURN
-        ENDIF
-        SY(1)=(SY(0)-sin(X))/X
-        F1=SY(1)
-        DO K=2,N
-           F=(2.0_dp*K-1.0_dp)*F1/X-F0
-           SY(K)=F
-           IF (abs(F)>=1.0e+300_dp) exit
-           F0=F1
-           F1=F
+           return
+        endif
+        sy(0)=-cos(x)/x
+        f0=sy(0)
+        dy(0)=(sin(x)+cos(x)/x)/x
+        if (n<1) then
+           return
+        endif
+        sy(1)=(sy(0)-sin(x))/x
+        f1=sy(1)
+        do k=2,n
+           f=(2.0_dp*k-1.0_dp)*f1/x-f0
+           sy(k)=f
+           if (abs(f)>=1.0e+300_dp) exit
+           f0=f1
+           f1=f
         end do
-        NM=K-1
-        DO K=1,NM
-           DY(K)=SY(K-1)-(K+1.0_dp)*SY(K)/X
+        nm=k-1
+        do k=1,nm
+           dy(k)=sy(k-1)-(k+1.0_dp)*sy(k)/x
         end do
-        END SUBROUTINE SPHY
+        end subroutine sphy
 
-        INTEGER FUNCTION MSTA1(X,MP)
+        integer function msta1(x,mp)
 !       ===================================================
 !       Purpose: Determine the starting point for backward
 !                recurrence such that the magnitude of
@@ -673,31 +674,31 @@ end function
 !                MP    --- Value of magnitude
 !       Output:  MSTA1 --- Starting point
 !       ===================================================
-!
+
         real(dp),intent(in) :: x
         integer,intent(in) :: mp
 
         real(dp) :: a0,f0,f1,f
         integer :: n0,n1,it,nn
 
-        A0=abs(X)
-        N0=INT(1.1_dp*A0)+1
-        F0=ENVJ(N0,A0)-MP
-        N1=N0+5
-        F1=ENVJ(N1,A0)-MP
-        DO IT=1,20
-           NN=int(N1-(N1-N0)/(1.0_dp-F0/F1))
-           F=ENVJ(NN,A0)-MP
-           IF(ABS(NN-N1)<1) exit
-           N0=N1
-           F0=F1
-           N1=NN
-           F1=F
+        a0=abs(x)
+        n0=int(1.1_dp*a0)+1
+        f0=envj(n0,a0)-mp
+        n1=n0+5
+        f1=envj(n1,a0)-mp
+        do it=1,20
+           nn=int(n1-(n1-n0)/(1.0_dp-f0/f1))
+           f=envj(nn,a0)-mp
+           if(abs(nn-n1)<1) exit
+           n0=n1
+           f0=f1
+           n1=nn
+           f1=f
         end do
-        MSTA1=NN
-        END FUNCTION MSTA1
+        msta1=nn
+        end function msta1
 
-        INTEGER FUNCTION MSTA2(X,N,MP)
+        integer function msta2(x,n,mp)
 !       ===================================================
 !       Purpose: Determine the starting point for backward
 !                recurrence such that all Jn(x) has MP
@@ -707,7 +708,7 @@ end function
 !                MP --- Significant digit
 !       Output:  MSTA2 --- Starting point
 !       ===================================================
-!
+
         real(dp),intent(in) :: x
         integer,intent(in) :: n
         integer,intent(in) :: mp
@@ -715,30 +716,30 @@ end function
         real(dp) :: a0,hmp,ejn,obj,f0,f1,f
         integer :: n0,n1,nn,it
 
-        A0=abs(X)
-        HMP=0.5_dp*MP
-        EJN=ENVJ(N,A0)
-        IF (EJN<=HMP) THEN
-           OBJ=MP
-           N0=INT(1.1_dp*A0)+1
-        ELSE
-           OBJ=HMP+EJN
-           N0=N
-        ENDIF
-        F0=ENVJ(N0,A0)-OBJ
-        N1=N0+5
-        F1=ENVJ(N1,A0)-OBJ
-        DO IT=1,20
-           NN=int(N1-(N1-N0)/(1.0_dp-F0/F1))
-           F=ENVJ(NN,A0)-OBJ
-           IF (ABS(NN-N1)<1) exit
-           N0=N1
-           F0=F1
-           N1=NN
-           F1=F
+        a0=abs(x)
+        hmp=0.5_dp*mp
+        ejn=envj(n,a0)
+        if (ejn<=hmp) then
+           obj=mp
+           n0=int(1.1_dp*a0)+1
+        else
+           obj=hmp+ejn
+           n0=n
+        endif
+        f0=envj(n0,a0)-obj
+        n1=n0+5
+        f1=envj(n1,a0)-obj
+        do it=1,20
+           nn=int(n1-(n1-n0)/(1.0_dp-f0/f1))
+           f=envj(nn,a0)-obj
+           if (abs(nn-n1)<1) exit
+           n0=n1
+           f0=f1
+           n1=nn
+           f1=f
         end do
-        MSTA2=NN+10
-        END FUNCTION MSTA2
+        msta2=nn+10
+        end function msta2
 
         real(dp) function envj(n, x) result(r)
         integer, intent(in) :: n
