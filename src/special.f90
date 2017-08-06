@@ -555,53 +555,65 @@ end function
 !                point for backward recurrence
 !       =======================================================
 !
-        IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-        IMPLICIT integer (I-N)
-        DIMENSION SJ(0:N),DJ(0:N)
+        integer,intent(in) :: n
+        real(dp),intent(in) :: x
+        integer,intent(out) :: nm
+        real(dp),dimension(0:n),intent(out) :: sj
+        real(dp),dimension(0:n),intent(out) :: dj
+
+        integer :: k,m
+        real(dp) :: sa,sb,f,f0,f1,cs
+
+        ! .3333333333333333D0 in original
+        real(dp),parameter :: one_third = 1.0_dp / 3.0_dp
+
         NM=N
-        IF (DABS(X).LT.1.0D-100) THEN
-           DO 10 K=0,N
-              SJ(K)=0.0D0
-10            DJ(K)=0.0D0
-           SJ(0)=1.0D0
-           IF (N.GT.0) THEN
-              DJ(1)=.3333333333333333D0
+        IF (abs(X)<1.0e-100_dp) THEN
+           DO K=0,N
+              SJ(K)=0.0_dp
+              DJ(K)=0.0_dp
+           end do
+           SJ(0)=1.0_dp
+           IF (N>0) THEN
+              DJ(1)=one_third
            ENDIF
            RETURN
         ENDIF
-        SJ(0)=DSIN(X)/X
-        DJ(0)=(DCOS(X)-DSIN(X)/X)/X
-        IF (N.LT.1) THEN
+        SJ(0)=sin(X)/X
+        DJ(0)=(cos(X)-sin(X)/X)/X
+        IF (N<1) THEN
            RETURN
         ENDIF
-        SJ(1)=(SJ(0)-DCOS(X))/X
-        IF (N.GE.2) THEN
+        SJ(1)=(SJ(0)-cos(X))/X
+        IF (N>=2) THEN
            SA=SJ(0)
            SB=SJ(1)
            M=MSTA1(X,200)
-           IF (M.LT.N) THEN
+           IF (M<N) THEN
               NM=M
            ELSE
               M=MSTA2(X,N,15)
            ENDIF
-           F=0.0D0
-           F0=0.0D0
-           F1=1.0D0-100
-           DO 15 K=M,0,-1
-              F=(2.0D0*K+3.0D0)*F1/X-F0
-              IF (K.LE.NM) SJ(K)=F
+           F=0.0_dp
+           F0=0.0_dp
+           F1=1.0_dp-100    ! note: '1.0D0-100' is (1.0d0 - 100 = -99.0d0)... was it supposed to be 1.0e-100 ?
+           DO K=M,0,-1
+              F=(2.0_dp*K+3.0_dp)*F1/X-F0
+              IF (K<=NM) SJ(K)=F
               F0=F1
-15            F1=F
-           CS=0.0D0
-           IF (DABS(SA).GT.DABS(SB)) CS=SA/F
-           IF (DABS(SA).LE.DABS(SB)) CS=SB/F0
-           DO 20 K=0,NM
-20            SJ(K)=CS*SJ(K)
+              F1=F
+           end do
+           CS=0.0_dp
+           IF (abs(SA)>abs(SB)) CS=SA/F
+           IF (abs(SA)<=abs(SB)) CS=SB/F0
+           DO K=0,NM
+              SJ(K)=CS*SJ(K)
+           end do
         ENDIF
-        DO 25 K=1,NM
-25         DJ(K)=SJ(K-1)-(K+1.0D0)*SJ(K)/X
-        RETURN
-        END
+        DO K=1,NM
+           DJ(K)=SJ(K-1)-(K+1.0_dp)*SJ(K)/X
+        end do
+        END SUBROUTINE SPHJ
 
         SUBROUTINE SPHY(N,X,NM,SY,DY)
 !       ======================================================
@@ -614,35 +626,43 @@ end function
 !                NM --- Highest order computed
 !       ======================================================
 !
-        IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-        IMPLICIT integer (I-N)
-        DIMENSION SY(0:N),DY(0:N)
+        integer,intent(in) :: n
+        real(dp),intent(in) :: x
+        integer,intent(out) :: nm
+        real(dp),dimension(0:n),intent(out) :: sy
+        real(dp),dimension(0:n),intent(out) :: dy
+
+        integer :: k
+        real(dp) :: f0,f1,f
+
         NM=N
-        IF (X.LT.1.0D-60) THEN
-           DO 10 K=0,N
-              SY(K)=-1.0D+300
-10            DY(K)=1.0D+300
+        IF (X<1.0e-60_dp) THEN
+           DO K=0,N
+              SY(K)=-1.0e+300_dp
+              DY(K)=1.0e+300_dp
+           end do
            RETURN
         ENDIF
-        SY(0)=-DCOS(X)/X
+        SY(0)=-cos(X)/X
         F0=SY(0)
-        DY(0)=(DSIN(X)+DCOS(X)/X)/X
-        IF (N.LT.1) THEN
+        DY(0)=(sin(X)+cos(X)/X)/X
+        IF (N<1) THEN
            RETURN
         ENDIF
-        SY(1)=(SY(0)-DSIN(X))/X
+        SY(1)=(SY(0)-sin(X))/X
         F1=SY(1)
-        DO 15 K=2,N
-           F=(2.0D0*K-1.0D0)*F1/X-F0
+        DO K=2,N
+           F=(2.0_dp*K-1.0_dp)*F1/X-F0
            SY(K)=F
-           IF (DABS(F).GE.1.0D+300) GO TO 20
+           IF (abs(F)>=1.0e+300_dp) exit
            F0=F1
-15         F1=F
-20      NM=K-1
-        DO 25 K=1,NM
-25         DY(K)=SY(K-1)-(K+1.0D0)*SY(K)/X
-        RETURN
-        END
+           F1=F
+        end do
+        NM=K-1
+        DO K=1,NM
+           DY(K)=SY(K-1)-(K+1.0_dp)*SY(K)/X
+        end do
+        END SUBROUTINE SPHY
 
         INTEGER FUNCTION MSTA1(X,MP)
 !       ===================================================
@@ -654,24 +674,28 @@ end function
 !       Output:  MSTA1 --- Starting point
 !       ===================================================
 !
-        IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-        IMPLICIT integer (I-N)
-        A0=DABS(X)
-        N0=INT(1.1D0*A0)+1
+        real(dp),intent(in) :: x
+        integer,intent(in) :: mp
+
+        real(dp) :: a0,f0,f1,f
+        integer :: n0,n1,it,nn
+
+        A0=abs(X)
+        N0=INT(1.1_dp*A0)+1
         F0=ENVJ(N0,A0)-MP
         N1=N0+5
         F1=ENVJ(N1,A0)-MP
-        DO 10 IT=1,20
-           NN=int(N1-(N1-N0)/(1.0D0-F0/F1))
+        DO IT=1,20
+           NN=int(N1-(N1-N0)/(1.0_dp-F0/F1))
            F=ENVJ(NN,A0)-MP
-           IF(ABS(NN-N1).LT.1) GO TO 20
+           IF(ABS(NN-N1)<1) exit
            N0=N1
            F0=F1
            N1=NN
- 10        F1=F
- 20     MSTA1=NN
-        RETURN
-        END
+           F1=F
+        end do
+        MSTA1=NN
+        END FUNCTION MSTA1
 
         INTEGER FUNCTION MSTA2(X,N,MP)
 !       ===================================================
@@ -684,14 +708,19 @@ end function
 !       Output:  MSTA2 --- Starting point
 !       ===================================================
 !
-        IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-        IMPLICIT integer (I-N)
-        A0=DABS(X)
-        HMP=0.5D0*MP
+        real(dp),intent(in) :: x
+        integer,intent(in) :: n
+        integer,intent(in) :: mp
+
+        real(dp) :: a0,hmp,ejn,obj,f0,f1,f
+        integer :: n0,n1,nn,it
+
+        A0=abs(X)
+        HMP=0.5_dp*MP
         EJN=ENVJ(N,A0)
-        IF (EJN.LE.HMP) THEN
+        IF (EJN<=HMP) THEN
            OBJ=MP
-           N0=INT(1.1D0*A0)+1
+           N0=INT(1.1_dp*A0)+1
         ELSE
            OBJ=HMP+EJN
            N0=N
@@ -699,17 +728,17 @@ end function
         F0=ENVJ(N0,A0)-OBJ
         N1=N0+5
         F1=ENVJ(N1,A0)-OBJ
-        DO 10 IT=1,20
-           NN=int(N1-(N1-N0)/(1.0D0-F0/F1))
+        DO IT=1,20
+           NN=int(N1-(N1-N0)/(1.0_dp-F0/F1))
            F=ENVJ(NN,A0)-OBJ
-           IF (ABS(NN-N1).LT.1) GO TO 20
+           IF (ABS(NN-N1)<1) exit
            N0=N1
            F0=F1
            N1=NN
-10         F1=F
-20      MSTA2=NN+10
-        RETURN
-        END
+           F1=F
+        end do
+        MSTA2=NN+10
+        END FUNCTION MSTA2
 
         real(dp) function envj(n, x) result(r)
         integer, intent(in) :: n
